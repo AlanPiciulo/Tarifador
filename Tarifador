@@ -1,0 +1,2300 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "tarifador.h"
+
+/* Calcula que dia fue esa fecha */
+
+int calcular_dia(int dia, int mes, int anio)
+{
+    int array_mes[13] = {6,2,2,5,0,3,5,1,4,6,2,4};
+
+    int a = 0,
+        b,
+        c,
+        d,
+        e,
+        total;
+
+    //Calculo b
+    b = anio%100 + (anio%100)/4;
+
+
+    //Calculo si el año es Bisiesto y c
+    if(b%4 == 0)
+        c = -1;
+    else
+        c = 0;
+
+
+    //Calculo d
+    d = array_mes[mes-1];
+
+
+    //Calculo e
+    e = dia;
+
+    total = a+b+c+d+e;
+
+    while(total>=7)
+        total = total - 7;
+
+    return total;
+
+}
+
+
+int main()
+{
+    FILE *fp = fopen("DIAS.txt","rt"),
+         *fp_reporte = fopen("COSTO_TOTAL.txt","wt");
+    char cad[130];
+    char *aux;
+    char status[10],
+         agente[12];
+    int dur, anio, mes, dia, hora, min, seg, tam_cad, codigo_dia, clave, unidades, cont = 0, flag;
+    double num;
+    float   costo_min = 0.046877,
+            /* Costo de horarios Normales */
+            cla2 = x,
+            cla3 = x,
+            cla4 = x,
+            cla5 = x,
+            cla6 = x,
+            /* Costo de horarios Reducidos */
+            cla2R = x,
+            cla3R = x,
+            cla4R = x,
+            cla5R = x,
+            cla6R =x,
+
+            costo_clave1;
+
+    fgets(cad,sizeof(cad),fp);
+    printf("\nTARIFADOR CALLCENTER\n");
+    printf("\n\nAsegurese de haber dado el formato correcto al documento de texto \"DIAS.txt\" \nPresione ENTER para continuar");
+    getchar();
+
+    fprintf(fp_reporte,"FECHA,HORA,DURACION,COSTO,DIA,CLAVE\n");
+
+    while(!feof(fp))
+    {
+            cont++;
+            fflush(stdin);
+            fgets(cad,sizeof(cad),fp);
+            tam_cad = strlen(cad);
+            printf("\n\nCONTADOR %d", cont);
+            printf("\nTAMANIO: %d", tam_cad);
+            /*Depende del largo de la cadena, el proegrama sabe como leerla*/
+            puts(cad);
+
+            if(tam_cad <=77)
+                flag = 2;
+            if(tam_cad > 86 && tam_cad < 90)
+                flag = 1;
+            if(tam_cad > 116)
+                flag = 3;
+
+            aux = cad;
+            switch(flag)
+            {
+                   case 2:
+                        {
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            sscanf(aux,"%d",&dur);
+
+                            printf("\n\nDuracion: %d", dur);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            strcpy(status,aux);
+
+                            printf("\nEstado de la llamada: %s", status);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            strcpy(agente, aux);
+                            printf("\nNumero de Agente: %s", agente);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            clave = atoi(aux);
+                            printf("\nClave: %d", clave);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            num = atoll(aux);
+
+                            sscanf(cad,"%d/%d/%d %d:%d", &dia, &mes, &anio, &hora, &min);
+
+                            if((dia == 16 && mes == 2)||
+                               (dia == 17 && mes == 2)||
+                               (dia == 23 && mes == 3)||
+                               (dia == 24 && mes == 3)||
+                               (dia == 2  && mes == 4)||
+                               (dia == 3  && mes == 4)||
+                               (dia == 1  && mes == 5)||
+                               (dia == 25 && mes == 5)||
+                               (dia == 20 && mes == 6)||
+                               (dia == 9  && mes == 7)||
+                               (dia == 7  && mes ==12)||
+                               (dia == 25 && mes ==12))
+                            codigo_dia = 100;
+                        else
+                            codigo_dia = calcular_dia(dia,mes,anio);
+
+                        switch(codigo_dia)
+                            {
+                                case 0://DOMINGO
+                                    {
+                                        if(clave == 1)
+                                        {
+                                            unidades = (dur/240) + 1;
+                                            printf("\n Unidades: %d", unidades);
+                                            costo_clave1 = unidades * costo_min;
+                                            fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                        }
+
+                                        if(clave == 2)
+                                        {
+                                            if(dur <= 17)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+
+                                        }
+                                        if(clave == 3)
+                                        {
+                                            if(dur <= 14)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                        }
+                                        if(clave == 4)
+                                        {
+                                            if(dur <= 8)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                        }
+                                        if(clave == 5)
+                                        {
+                                            if(dur <= 7)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                        }
+                                        if(clave == 6)
+                                        {
+                                            if(dur <= 5)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+
+                                        }
+                                    }
+                                    break;
+                                case 1://LUNES
+                                    {
+                                            if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 6)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE DE SWITCH
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                       }
+                                    break;
+                                case 2://MARTES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH MARTES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 3://MIERCOLES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH MIERCOLES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 4://JUEVES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH JUEVES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 5://VIERNES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 6://SABADO
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 100://FERIADO
+                                    {
+                                        if(clave == 1)
+                                            {
+                                                unidades = (dur/240) + 1;
+                                                printf("\n Unidades: %d", unidades);
+                                                costo_clave1 = unidades * costo_min;
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                            }
+                                            if(clave == 2)
+                                            {
+                                                if(dur <= 17)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                            }
+                                            if(clave == 3)
+                                            {
+                                                if(dur <= 14)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                            }
+                                            if(clave == 4)
+                                            {
+                                                if(dur <= 8)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                            }
+                                            if(clave == 5)
+                                            {
+                                                if(dur <= 7)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                            }
+                                            if(clave == 6)
+                                            {
+                                                if(dur <= 5)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                            }
+                                    }
+                                    break;
+                                default:
+                                    //acciones
+                                    break;
+                            }
+                        }
+                            break;
+                case 1:
+                        {
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            sscanf(aux,"%d",&dur);
+
+                            printf("\n\nDuracion:%d", dur);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            strcpy(status,aux);
+
+                            printf("\nEstado de la llamada: %s",status);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            strcpy(agente, aux);
+
+                            printf("\nNumero de Agente: %s",agente);
+
+                            aux = strrchr(cad,44);
+                            *aux = '\0';
+                            aux++;
+                            clave = atoi(aux);
+                            printf("\nClave: %d", clave);
+
+                            aux = strrchr(cad,64);//
+                            *aux = '\0';
+                            aux = strrchr(cad,47);//
+                            *aux = '\0';
+                            aux++;
+                            num = atoll(aux);
+                            printf("\nNumero telefonico: %.0lf",num);
+
+
+                            aux = strrchr(cad,44);//
+                            *aux = '\0';
+                            aux = strrchr(cad,44);//
+                            *aux = '\0';
+                            aux = strrchr(cad,44);//
+                            *aux = '\0';
+
+                            sscanf(cad,"%d/%d/%d %d:%d", &dia, &mes, &anio, &hora, &min);
+
+                             if((dia == 16 && mes == 2)||
+                               (dia == 17 && mes == 2)||
+                               (dia == 23 && mes == 3)||
+                               (dia == 24 && mes == 3)||
+                               (dia == 2  && mes == 4)||
+                               (dia == 3  && mes == 4)||
+                               (dia == 1  && mes == 5)||
+                               (dia == 25 && mes == 5)||
+                               (dia == 20 && mes == 6)||
+                               (dia == 9  && mes == 7)||
+                               (dia == 7  && mes ==12)||
+                               (dia == 25 && mes ==12))
+                            codigo_dia = 100;
+                        else
+                            codigo_dia = calcular_dia(dia,mes,anio);
+                            switch(codigo_dia)
+                            {
+                                case 0://DOMINGO
+                                    {
+                                        if(clave == 1)
+                                        {
+                                            unidades = (dur/240) + 1;
+            //                                printf("\n Unidades: %d", unidades);
+                                            costo_clave1 = unidades * costo_min;
+                                            fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                        }
+
+                                        if(clave == 2)
+                                        {
+                                            if(dur <= 17)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+
+                                        }
+                                        if(clave == 3)
+                                        {
+                                            if(dur <= 14)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                        }
+                                        if(clave == 4)
+                                        {
+                                            if(dur <= 8)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                        }
+                                        if(clave == 5)
+                                        {
+                                            if(dur <= 7)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                        }
+                                        if(clave == 6)
+                                        {
+                                            if(dur <= 5)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+
+                                        }
+                                    }
+                                    break;
+                                case 1://LUNES
+                                    {
+                                            if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 6)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE DE SWITCH
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                       }
+                                    break;
+                                case 2://MARTES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH MARTES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 3://MIERCOLES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH MIERCOLES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 4://JUEVES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH JUEVES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 5://VIERNES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 6://SABADO
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 100://FERIADO
+                                    {
+                                        if(clave == 1)
+                                            {
+                                                unidades = (dur/240) + 1;
+                                                printf("\n Unidades: %d", unidades);
+                                                costo_clave1 = unidades * costo_min;
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                            }
+                                            if(clave == 2)
+                                            {
+                                                if(dur <= 17)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                            }
+                                            if(clave == 3)
+                                            {
+                                                if(dur <= 14)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                            }
+                                            if(clave == 4)
+                                            {
+                                                if(dur <= 8)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                            }
+                                            if(clave == 5)
+                                            {
+                                                if(dur <= 7)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                            }
+                                            if(clave == 6)
+                                            {
+                                                if(dur <= 5)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                            }
+                                    }
+                                    break;
+                                default:
+                                    //acciones
+                                    break;
+                            }
+                       }
+                            break;
+                case 3:
+                        {
+                            aux = strrchr(cad,34);
+                            *aux = '\0';
+                            aux = strrchr(cad,34);
+                            *aux = '\0';
+                            aux++;
+                            sscanf(aux,"%d",&dur);
+
+                            printf("\n\nDuracion: %d", dur);
+
+                            aux = strrchr(cad,34);
+                            *aux = '\0';
+                            aux = strrchr(cad,34);
+                            *aux = '\0';
+                            aux++;
+                            strcpy(status,aux);
+
+                            printf("\nEstado de la llamada: %s", status);
+
+                            aux = strrchr(cad,34);//1
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//2
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//3
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//4
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//5
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//6
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//7
+                            *aux = '\0';
+                            aux = strrchr(cad,34);//8
+                            *aux = '\0';
+
+
+                            aux++;
+                            num = atoll(aux);
+                            printf("\nNumero telefonico: %.0lf", num);
+
+                            aux = strrchr(cad,44);//
+                            *aux = '\0';
+                            aux = strrchr(cad,44);//
+                            *aux = '\0';
+
+                            sscanf(cad,"%d-%d-%d %d:%d:%d", &anio, &mes, &dia, &hora, &min, &seg);
+
+                            if((dia == 16 && mes == 2)||
+                               (dia == 17 && mes == 2)||
+                               (dia == 23 && mes == 3)||
+                               (dia == 24 && mes == 3)||
+                               (dia == 2  && mes == 4)||
+                               (dia == 3  && mes == 4)||
+                               (dia == 1  && mes == 5)||
+                               (dia == 25 && mes == 5)||
+                               (dia == 20 && mes == 6)||
+                               (dia == 9  && mes == 7)||
+                               (dia == 7  && mes ==12)||
+                               (dia == 25 && mes ==12))
+                            codigo_dia = 100;
+                        else
+                            codigo_dia = calcular_dia(dia,mes,anio);
+
+                        switch(codigo_dia)
+                            {
+                                case 0://DOMINGO
+                                    {
+                                        if(clave == 1)
+                                        {
+                                            unidades = (dur/240) + 1;
+                                            printf("\n Unidades: %d", unidades);
+                                            costo_clave1 = unidades * costo_min;
+                                            fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                        }
+
+                                        if(clave == 2)
+                                        {
+                                            if(dur <= 17)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+
+                                        }
+                                        if(clave == 3)
+                                        {
+                                            if(dur <= 14)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                        }
+                                        if(clave == 4)
+                                        {
+                                            if(dur <= 8)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                        }
+                                        if(clave == 5)
+                                        {
+                                            if(dur <= 7)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                        }
+                                        if(clave == 6)
+                                        {
+                                            if(dur <= 5)
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                            else
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,DOMINGO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+
+                                        }
+                                    }
+                                    break;
+                                case 1://LUNES
+                                    {
+                                            if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 6)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE DE SWITCH
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,LUNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                       }
+                                    break;
+                                case 2://MARTES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH MARTES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MARTES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 3://MIERCOLES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH MIERCOLES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,MIERCOLES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 4://JUEVES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else//ELSE SWITCH JUEVES
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,JUEVES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 5://VIERNES
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,VIERNES,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 6://SABADO
+                                    {
+                                        if(hora >= 8 && hora <= 21)
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5,clave);
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 5)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6,clave);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if(clave == 1)
+                                                {
+                                                    unidades = (dur/240) + 1;
+                                                    printf("\n Unidades: %d", unidades);
+                                                    costo_clave1 = unidades * costo_min;
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                                }
+
+                                                if(clave == 2)
+                                                {
+                                                    if(dur <= 17)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                                }
+                                                if(clave == 3)
+                                                {
+                                                    if(dur <= 14)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                                }
+                                                if(clave == 4)
+                                                {
+                                                    if(dur <= 8)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                                }
+                                                if(clave == 5)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+
+                                                }
+                                                if(clave == 6)
+                                                {
+                                                    if(dur <= 7)
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                    else
+                                                        fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,SABADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                                }
+                                            }
+                                        }
+                                    break;
+                                case 100://FERIADO
+                                    {
+                                        if(clave == 1)
+                                            {
+                                                unidades = (dur/240) + 1;
+                                                printf("\n Unidades: %d", unidades);
+                                                costo_clave1 = unidades * costo_min;
+                                                fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_clave1,clave);
+                                            }
+                                            if(clave == 2)
+                                            {
+                                                if(dur <= 17)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla2R,clave);
+                                            }
+                                            if(clave == 3)
+                                            {
+                                                if(dur <= 14)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla3R,clave);
+                                            }
+                                            if(clave == 4)
+                                            {
+                                                if(dur <= 8)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla4R,clave);
+                                            }
+                                            if(clave == 5)
+                                            {
+                                                if(dur <= 7)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla5R,clave);
+                                            }
+                                            if(clave == 6)
+                                            {
+                                                if(dur <= 5)
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/costo_min,clave);
+                                                else
+                                                    fprintf(fp_reporte,"%d/%d/%d,%d:%d,%d,%.6lf,FERIADO,%d\n", dia, mes, anio, hora, min, dur, /*costo*/dur*cla6R,clave);
+                                            }
+                                    }
+                                    break;
+                                default:
+                                    //acciones
+                                    break;
+                            }
+                        }
+                            break;
+                default:
+                    break;
+            }
+    }
+    fclose(fp);
+    fclose(fp_reporte);
+
+    printf("\n\n\nTarifacion finalizada\nSe ha generado un archivo llamado COSTO_TOTAL\nAlan Piciulo");
+
+    return 0;
+}
